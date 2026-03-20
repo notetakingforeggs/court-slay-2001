@@ -1,0 +1,7 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg2-binary
+python-telegram-bot==20.7
+apscheduler
+python-dotenv
