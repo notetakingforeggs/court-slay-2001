@@ -32,7 +32,7 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://jonah:jonah@postgres:5432/courtdb_dev
-      BOT_TOKEN: 8742607832:AAGzaSKXMk4oG6Bm2bbUiG9afkseTqMrmb4
+      BOT_TOKEN: ${BOT_TOKEN}
     ports:
       - "8000:8000"
 
