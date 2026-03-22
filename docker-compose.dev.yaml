@@ -11,9 +11,10 @@ services:
       POSTGRES_PASSWORD: jonah
       POSTGRES_DB: courtdb_dev
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./db/.psqlrc:/root/.psqlrc:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U jonah -d courtdb_dev"]
       interval: 5s
