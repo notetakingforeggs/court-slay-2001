@@ -1,7 +1,10 @@
+import logging
 import requests
 import os
 from bs4 import BeautifulSoup as bs
 from dotenv import load_dotenv, find_dotenv
+
+logger = logging.getLogger("scraper.session")
 
 # Load credentials from environment variables (may have to change depending on where this is being called from, setting up for nb)
 
@@ -35,31 +38,30 @@ def login():
     """Logs into the court website and returns an authenticated session."""
     session = requests.session()
     session.headers.update(HEADERS)
-    print(f"username: {USERNAME}, password: {PASSWORD}")
-    
+
     try:
         login_response = session.post(url, data=login_payload, allow_redirects=False)
-        
+
         # 200 response is failed login, returning login page, 302 is redirection, which is what we want to get.
 
         if login_response.status_code == 302:
             redirect_url = login_response.headers.get("Location", "/")
             home_response = session.get("https://courtserve.net" + redirect_url)
         else:
-            print("Did not recieve a redirect, already logged in?") # TODO this needs clarification
+            logger.debug("Did not recieve a redirect, already logged in?") # TODO this needs clarification
             home_response = session.get("https://courtserve.net/")
-        
+
         soup = bs(home_response.text, "html.parser")
 
         if(not is_logged_in(soup)):
-            print(f"Login probs failed ")
+            logger.warning(f"Login probs failed ")
             return None
         else:
-            print("probs logged in")
-            return session 
+            logger.info("Login successful")
+            return session
     except requests.RequestException as e:
-        print(f"Request failed: {e}")
+        logger.error(f"Request failed: {e}")
         return None
-    
+
 def is_logged_in(soup : bs) -> bool:
     return not (soup.find("form", id="login-form") or soup.find("form", id="signin-form"))

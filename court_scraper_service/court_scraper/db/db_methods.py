@@ -1,8 +1,11 @@
 import psycopg2
 import os
+import logging
 from court_scraper.db.models import CourtCase
 from dotenv import load_dotenv, find_dotenv
 import time
+
+logger = logging.getLogger("scraper.db")
 # load_dotenv(dotenv_path="../../.env.dev", override=True) # override means that it removes any lingering .env vars
 load_dotenv(find_dotenv())
 def get_connection():
@@ -30,7 +33,7 @@ def get_court_id_by_city(city):
                 return row[0] if row else None
                 
     except Exception as e:
-        print(f"issue with getting court by ID: {e}")
+        logger.error(f"Error getting court by city: {e}")
     finally:
          conn.close()
         
@@ -55,6 +58,7 @@ def insert_court_case(court_case:CourtCase, court_id):
                         court_id
                         )
                         VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        ON CONFLICT DO NOTHING
                         RETURNING id
                     ''',
                     (
@@ -71,10 +75,11 @@ def insert_court_case(court_case:CourtCase, court_id):
                         court_id
                     )
                 )
-        
-    except psycopg2.IntegrityError as e:
-        print(f"case already exists?: {court_case}\n {e.with_traceback}")
-        pass
+                return cur.fetchone() is not None  # True if inserted, False if skipped
+
+    except psycopg2.IntegrityError:
+        logger.debug(f"Duplicate skipped: {court_case.case_id}")
+        return False
 
     finally:
         conn.close()

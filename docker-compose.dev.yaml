@@ -10,6 +10,8 @@ services:
       POSTGRES_USER: jonah
       POSTGRES_PASSWORD: jonah
       POSTGRES_DB: courtdb_dev
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
+    command: postgres -c log_min_messages=WARNING -c log_min_error_statement=ERROR
     ports:
       - "5433:5432"
     volumes:

@@ -1,9 +1,13 @@
+import logging
 from datetime import datetime, timezone
 import re
 from typing import Optional
 
+logger = logging.getLogger("scraper.utils")
+
+
 def normalise_start_time(start_time: str) -> str:
-     
+
     m = re.match(
         r"""(?xi)
         ^\s*
@@ -13,7 +17,7 @@ def normalise_start_time(start_time: str) -> str:
         \s*
         (am|pm)
         \s*
-        $    
+        $
         """,
         start_time
     )
@@ -27,10 +31,10 @@ def normalise_start_time(start_time: str) -> str:
     return clean_time
 
 def convert_to_unix_timestamp(time_str:str, date:str) -> int:
-    
+
 
     # Format time string
-    format = "%I:%M %p" 
+    format = "%I:%M %p"
     parsed_time = datetime.strptime(time_str, format).time()
 
     # Get todays date and combine to make datetime
@@ -45,9 +49,9 @@ def convert_to_unix_timestamp(time_str:str, date:str) -> int:
 
 def parse_duration(duration_span_raw: Optional[str]) -> Optional[int]:
     if not duration_span_raw:
-        print("parse duration: no duration span?")
+        logger.debug("parse duration: no duration span?")
         return None
-    
+
     # Normalising input
     duration_span_raw = re.sub(r'r/', '', duration_span_raw).strip().lower() # get rid of that weird r thing
     duration_span_raw = re.sub(r'\s+', ' ', duration_span_raw)
@@ -67,9 +71,9 @@ def parse_duration(duration_span_raw: Optional[str]) -> Optional[int]:
     if hour_match:
         hours = int(hour_match.group(1))
         return hours*60
-    
+
     minute_match = re.search(rf'(\d+)\s*{minute_patterns}', duration_span_raw)
-    if minute_match:    
+    if minute_match:
         minutes = int(minute_match.group(1))
         return minutes
 # TODO this needs sorted out, probably just pass the entire time string to it and do the logic here before passing back start time and duration and appending them to the list.
@@ -78,12 +82,11 @@ def calculate_duration(start_and_end_times:str) -> tuple[str, int]:
 
     parts = re.split(r"\s*to\s*", start_and_end_times, flags=re.IGNORECASE)
     if len(parts) != 2:
-        print("splitting start time/ end time produced unexpected output")
-        return None 
-    
+        logger.debug("splitting start time/ end time produced unexpected output")
+        return None
+
     start_time = re.sub(r'(?i)(am|pm)$', r' \1', parts[0])
     end_time = re.sub(r'(?i)(am|pm)$', r' \1', parts[1])
-    # print(f"start time: {start_time}, end time : {end_time}")
 
     fmt = "%I:%M %p"
     try:
@@ -93,6 +96,4 @@ def calculate_duration(start_and_end_times:str) -> tuple[str, int]:
         minutes = int(delta.total_seconds()) // 60
         return (start_time, minutes)
     except ValueError as e:
-        print(f"value error! {e}")
-
- 
+        logger.debug(f"value error! {e}")

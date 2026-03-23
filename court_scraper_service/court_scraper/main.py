@@ -15,16 +15,15 @@ logger = logging.getLogger("scraper")
 
 
 def main():
-    logger.info("Scrape starting")
-
     links_and_dates = get_court_links_and_dates()
     session = login()
     get_connection()
+    logger.info(f"Scrape initiated — DB connected — scraping {len(links_and_dates)} courts")
 
     court_scraper = CourtScraper(session, links_and_dates)
-    court_scraper.run()
+    total_new = court_scraper.run()
 
-    logger.info("Scrape complete")
+    logger.info(f"Scrape complete — {total_new} new cases added in total")
 
 
 if __name__ == "__main__":

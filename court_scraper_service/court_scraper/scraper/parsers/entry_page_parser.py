@@ -1,4 +1,9 @@
+import logging
 from bs4 import BeautifulSoup as bs
+
+logger = logging.getLogger("scraper.parser")
+
+
 class EntryPageParser:
     def __init__(self, html):
         self.html = html
@@ -11,13 +16,13 @@ class EntryPageParser:
             # find box containing "open list in new tab" link and get path
             box2 = soup.find("div", id="box2")
             if not box2:
-                print(f"no box2 at{self.court_url}")
+                logger.warning(f"no box2 at{self.court_url}")
                 return None
             new_tab_anchor = box2.find("a")
             if not new_tab_anchor:
-                print(f"no new tab link at {self.court_url}")
+                logger.warning(f"no new tab link at {self.court_url}")
                 return None
-                
+
             new_tab_url = new_tab_anchor["href"] # get url "open list..." link
             self.new_tab_url = new_tab_url
 

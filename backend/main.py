@@ -6,6 +6,8 @@ import os
 import logging
 from typing import Optional
 from fastapi import FastAPI, Depends, Query
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -15,6 +17,10 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 logger = logging.getLogger("court-slay")
+
+# suppress noisy third party loggers
+for noisy in ["httpx", "httpx._client", "httpcore", "httpcore.connection", "httpcore.http11", "telegram", "telegram.ext", "apscheduler", "apscheduler.scheduler", "apscheduler.executors.default", "uvicorn.access"]:
+    logging.getLogger(noisy).setLevel(logging.WARNING)
 
 from database import get_db
 from models import CourtCase, Court, Region
@@ -49,6 +55,12 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Court Slay 2000", lifespan=lifespan)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+@app.get("/")
+def index():
+    return FileResponse("static/index.html")
 
 
 @app.get("/cases")

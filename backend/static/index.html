@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Court Slay 2001</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: system-ui, sans-serif;
+            background: #f5f5f5;
+            color: #222;
+            padding: 2rem 1rem;
+        }
+
+        header {
+            max-width: 900px;
+            margin: 0 auto 2rem;
+        }
+
+        header h1 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        header p {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 0.3rem;
+        }
+
+        .search-bar {
+            max-width: 900px;
+            margin: 0 auto 1.5rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .search-bar input {
+            flex: 1;
+            padding: 0.7rem 1rem;
+            font-size: 1rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: white;
+        }
+
+        .search-bar input:focus {
+            outline: none;
+            border-color: #555;
+        }
+
+        .search-bar button {
+            padding: 0.7rem 1.4rem;
+            font-size: 1rem;
+            background: #222;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .search-bar button:hover { background: #444; }
+
+        .status {
+            max-width: 900px;
+            margin: 0 auto 1rem;
+            font-size: 0.9rem;
+            color: #666;
+            min-height: 1.2rem;
+        }
+
+        .status.error { color: #c0392b; }
+
+        .results {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            font-size: 0.9rem;
+        }
+
+        thead {
+            background: #222;
+            color: white;
+        }
+
+        th {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 0.7rem 1rem;
+            border-bottom: 1px solid #eee;
+            vertical-align: top;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fafafa; }
+
+        .no-results {
+            text-align: center;
+            padding: 3rem;
+            color: #888;
+            background: white;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 3px;
+            font-size: 0.8rem;
+            background: #eee;
+            color: #444;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Court Hearing Search</h1>
+    <p>Search for upcoming possession hearings by claimant or defendant name.</p>
+</header>
+
+<div class="search-bar">
+    <input type="text" id="query" placeholder="Enter a name to search..." autofocus>
+    <button id="search-btn">Search</button>
+</div>
+
+<div class="status" id="status"></div>
+<div class="results" id="results"></div>
+
+<script>
+    document.getElementById("query").addEventListener("keydown", function(e) {
+        if (e.key === "Enter") runSearch();
+    });
+
+    document.getElementById("search-btn").addEventListener("click", runSearch);
+
+    function formatDate(epoch) {
+        if (!epoch) return "—";
+        const d = new Date(epoch * 1000);
+        return d.toLocaleDateString("en-GB") + " " + d.toLocaleTimeString("en-GB", {hour: "2-digit", minute: "2-digit"});
+    }
+
+    async function runSearch() {
+        const query = document.getElementById("query").value.trim();
+        const status = document.getElementById("status");
+        const results = document.getElementById("results");
+
+        if (!query) return;
+
+        status.textContent = "Searching...";
+        status.className = "status";
+        results.innerHTML = "";
+
+        try {
+            const [r1, r2] = await Promise.all([
+                fetch("/cases?claimant=" + encodeURIComponent(query)),
+                fetch("/cases?defendant=" + encodeURIComponent(query))
+            ]);
+
+            const claimantHits = await r1.json();
+            const defendantHits = await r2.json();
+
+            // merge and deduplicate by id
+            const seen = new Set();
+            const all = [...claimantHits, ...defendantHits].filter(c => {
+                if (seen.has(c.id)) return false;
+                seen.add(c.id);
+                return true;
+            });
+
+            // sort by hearing date ascending
+            all.sort((a, b) => a.start_time_epoch - b.start_time_epoch);
+
+            if (all.length === 0) {
+                status.textContent = "No hearings found for '" + query + "'.";
+                results.innerHTML = '<div class="no-results">No results found.</div>';
+                return;
+            }
+
+            status.textContent = all.length + " hearing" + (all.length !== 1 ? "s" : "") + " found for '" + query + "'.";
+
+            let html = "<table><thead><tr>" +
+                "<th>Date &amp; Time</th>" +
+                "<th>Claimant</th>" +
+                "<th>Defendant</th>" +
+                "<th>Type</th>" +
+                "<th>Details</th>" +
+                "</tr></thead><tbody>";
+
+            for (const c of all) {
+                html += "<tr>" +
+                    "<td>" + formatDate(c.start_time_epoch) + "</td>" +
+                    "<td>" + (c.claimant || "—") + "</td>" +
+                    "<td>" + (c.defendant || "—") + "</td>" +
+                    "<td>" + (c.hearing_type ? '<span class="tag">' + c.hearing_type + "</span>" : "—") + "</td>" +
+                    "<td>" + (c.case_details || "—") + "</td>" +
+                    "</tr>";
+            }
+
+            html += "</tbody></table>";
+            results.innerHTML = html;
+
+        } catch (e) {
+            status.textContent = "Something went wrong. Please try again.";
+            status.className = "status error";
+        }
+    }
+</script>
+
+</body>
+</html>
