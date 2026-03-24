@@ -65,25 +65,63 @@ def index():
 
 @app.get("/cases")
 def search_cases(
+    name: Optional[str] = Query(None),
     claimant: Optional[str] = Query(None),
     defendant: Optional[str] = Query(None),
     hearing_type: Optional[str] = Query(None),
+    keyword: Optional[str] = Query(None),
     court_id: Optional[int] = Query(None),
     region_id: Optional[int] = Query(None),
+    from_date: Optional[int] = Query(None),
+    to_date: Optional[int] = Query(None),
+    offset: int = Query(0),
+    order: str = Query("desc"),
+    limit: int = Query(100),
     db: Session = Depends(get_db),
 ):
-    q = db.query(CourtCase)
+    import time
+    from datetime import datetime, date, time as time_obj
+    limit = min(limit, 100)
+    q = db.query(CourtCase, Court.city).join(Court, CourtCase.court_id == Court.id)
+
+    if name:
+        q = q.filter(
+            (CourtCase.claimant.ilike(f"%{name}%")) | (CourtCase.defendant.ilike(f"%{name}%"))
+        )
     if claimant:
         q = q.filter(CourtCase.claimant.ilike(f"%{claimant}%"))
     if defendant:
         q = q.filter(CourtCase.defendant.ilike(f"%{defendant}%"))
     if hearing_type:
         q = q.filter(CourtCase.hearing_type.ilike(f"%{hearing_type}%"))
+    if keyword:
+        q = q.filter(CourtCase.case_details.ilike(f"%{keyword}%"))
     if court_id:
         q = q.filter(CourtCase.court_id == court_id)
     if region_id:
-        q = q.join(Court).filter(Court.region_id == region_id)
-    return q.limit(100).all()
+        q = q.filter(Court.region_id == region_id)
+
+    # date range — default to start of today unless from_date explicitly provided
+    if from_date is not None:
+        q = q.filter(CourtCase.start_time_epoch >= from_date)
+    elif to_date is None:
+        today_start = int(datetime.combine(date.today(), time_obj.min).timestamp())
+        q = q.filter(CourtCase.start_time_epoch >= today_start)
+    if to_date is not None:
+        q = q.filter(CourtCase.start_time_epoch <= to_date)
+
+    if order == "desc":
+        q = q.order_by(CourtCase.start_time_epoch.desc())
+    else:
+        q = q.order_by(CourtCase.start_time_epoch.asc())
+    rows = q.offset(offset).limit(limit).all()
+
+    results = []
+    for case, city in rows:
+        d = {c.key: getattr(case, c.key) for c in case.__table__.columns}
+        d["court_name"] = city
+        results.append(d)
+    return results
 
 
 @app.get("/courts")

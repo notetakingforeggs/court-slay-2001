@@ -15,15 +15,21 @@ logger = logging.getLogger("scraper")
 
 
 def main():
+    logger.info("=" * 60)
+    logger.info(">>> SCRAPE STARTING")
+    logger.info("=" * 60)
+
     links_and_dates = get_court_links_and_dates()
     session = login()
     get_connection()
-    logger.info(f"Scrape initiated — DB connected — scraping {len(links_and_dates)} courts")
+    logger.info(f"DB connected — scraping {len(links_and_dates)} courts")
 
     court_scraper = CourtScraper(session, links_and_dates)
     total_new = court_scraper.run()
 
-    logger.info(f"Scrape complete — {total_new} new cases added in total")
+    logger.info("=" * 60)
+    logger.info(f">>> SCRAPE COMPLETE — {total_new} new cases added")
+    logger.info("=" * 60)
 
 
 if __name__ == "__main__":
