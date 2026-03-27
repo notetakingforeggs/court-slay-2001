@@ -1,60 +1,90 @@
 import time
+import logging
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
-from models import CourtCase, Subscription
+from models import CourtCase, Court, Subscription
 from database import SessionLocal
 
+logger = logging.getLogger("court-slay")
 
-def format_hits(claimant_hits: list, defendant_hits: list) -> str:
-    lines = ["»» New hits for your subscribed alerts ««\n"]
+TELEGRAM_MAX = 4096
 
-    if claimant_hits:
-        lines.append("Claimant hits:")
-        for c in claimant_hits:
-            dt = datetime.fromtimestamp(c.start_time_epoch, tz=timezone.utc)
-            lines.append(f"  • {dt.strftime('%d/%m/%Y %H:%M')} — {c.case_details}")
 
-    if defendant_hits:
-        lines.append("\nDefendant hits:")
-        for c in defendant_hits:
-            dt = datetime.fromtimestamp(c.start_time_epoch, tz=timezone.utc)
-            lines.append(f"  • {dt.strftime('%d/%m/%Y %H:%M')} — {c.case_details}")
+def format_case(c, court_name, label):
+    dt = datetime.fromtimestamp(c.start_time_epoch, tz=timezone.utc)
+    return (
+        f"• {dt.strftime('%d/%m/%Y %H:%M')} — {court_name}\n"
+        f"  {label}: {c.claimant if label == 'Claimant' else c.defendant}\n"
+        f"  {c.case_details or '-'}"
+    )
 
-    return "\n".join(lines)
+
+def split_messages(header, lines):
+    """Yield message strings each within Telegram's 4096-char limit."""
+    chunks = [header]
+    current_len = len(header)
+
+    for line in lines:
+        # +1 for the newline separator
+        if current_len + len(line) + 1 > TELEGRAM_MAX:
+            yield "\n".join(chunks)
+            chunks = [line]
+            current_len = len(line)
+        else:
+            chunks.append(line)
+            current_len += len(line) + 1
+
+    if chunks:
+        yield "\n".join(chunks)
 
 
 async def run_notifier(bot):
     db: Session = SessionLocal()
     try:
         for sub in db.query(Subscription).all():
-            claimant_hits = []
-            defendant_hits = []
+            lines = []
+
+            now = int(time.time())
 
             for term in (sub.alert_terms_claimant or []):
-                claimant_hits += (
-                    db.query(CourtCase)
+                hits = (
+                    db.query(CourtCase, Court.city)
+                    .join(Court, CourtCase.court_id == Court.id)
                     .filter(
                         CourtCase.claimant.ilike(f"%{term}%"),
                         CourtCase.created_at > sub.last_notified_timestamp,
+                        CourtCase.start_time_epoch >= now,
                     )
                     .all()
                 )
+                if hits:
+                    lines.append(f"\nClaimant matches for '{term}':")
+                    for case, city in hits:
+                        lines.append(format_case(case, city, "Claimant"))
 
             for term in (sub.alert_terms_defendant or []):
-                defendant_hits += (
-                    db.query(CourtCase)
+                hits = (
+                    db.query(CourtCase, Court.city)
+                    .join(Court, CourtCase.court_id == Court.id)
                     .filter(
                         CourtCase.defendant.ilike(f"%{term}%"),
                         CourtCase.created_at > sub.last_notified_timestamp,
+                        CourtCase.start_time_epoch >= now,
                     )
                     .all()
                 )
+                if hits:
+                    lines.append(f"\nDefendant matches for '{term}':")
+                    for case, city in hits:
+                        lines.append(format_case(case, city, "Defendant"))
 
-            if claimant_hits or defendant_hits:
-                await bot.send_message(
-                    chat_id=sub.chat_id,
-                    text=format_hits(claimant_hits, defendant_hits),
-                )
+            if lines:
+                header = "New hits for your subscribed alerts"
+                sent = 0
+                for msg in split_messages(header, lines):
+                    await bot.send_message(chat_id=sub.chat_id, text=msg)
+                    sent += 1
+                logger.info(f"Notified chat {sub.chat_id} — {sent} message(s) sent")
                 sub.last_notified_timestamp = int(time.time())
                 db.commit()
     finally:
