@@ -13,7 +13,7 @@ services:
       POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256"
     command: postgres -c log_min_messages=WARNING -c log_min_error_statement=ERROR
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./db/.psqlrc:/root/.psqlrc:ro
@@ -36,8 +36,9 @@ services:
     environment:
       DATABASE_URL: postgresql://jonah:jonah@postgres:5432/courtdb_dev
       BOT_TOKEN: ${BOT_TOKEN}
+      ALLOWED_CHAT_IDS: ${ALLOWED_CHAT_IDS}
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
 
   # -------------------------
   # 3) Python court scraper

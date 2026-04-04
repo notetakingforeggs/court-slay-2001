@@ -58,7 +58,7 @@ class Flavour1CourtCaseFactory:
 
                     if re.search(r' v |vs|-v-|-V-| V ', case_details_span):
 
-                        match = re.search(r"(.+?)\s*(?:v|vs|-v-|-V-| V )\s*(.+)", details_span_less_case_id)
+                        match = re.search(r"(.+?)\s+(?:vs|-v-|-V-|[Vv])\s+(.+)", details_span_less_case_id)
                         if match: # maybe there is a bug where the first research passes and the second one doesnt?
                             claimant = match.group(1).strip()
                             defendant = match.group(2).strip()

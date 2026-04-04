@@ -54,7 +54,7 @@ async def lifespan(app: FastAPI):
     scheduler.shutdown()
 
 
-app = FastAPI(title="Court Slay 2000", lifespan=lifespan)
+app = FastAPI(title="Court Slay 2000", lifespan=lifespan, docs_url=None, redoc_url=None)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
@@ -68,6 +68,7 @@ def search_cases(
     name: Optional[str] = Query(None),
     claimant: Optional[str] = Query(None),
     defendant: Optional[str] = Query(None),
+    case_ref: Optional[str] = Query(None),
     hearing_type: Optional[str] = Query(None),
     keyword: Optional[str] = Query(None),
     court_id: Optional[int] = Query(None),
@@ -94,6 +95,8 @@ def search_cases(
         q = q.filter(CourtCase.defendant.ilike(f"%{defendant}%"))
     if hearing_type:
         q = q.filter(CourtCase.hearing_type.ilike(f"%{hearing_type}%"))
+    if case_ref:
+        q = q.filter(CourtCase.case_id.ilike(f"%{case_ref}%"))
     if keyword:
         q = q.filter(CourtCase.case_details.ilike(f"%{keyword}%"))
     if court_id:

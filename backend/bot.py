@@ -1,9 +1,14 @@
+import os
 import time
 from telegram import Update
 from telegram.ext import Application, MessageHandler, filters, ContextTypes
 from sqlalchemy.orm import Session
 from models import Subscription
 from database import SessionLocal
+
+def _allowed_ids() -> set:
+    raw = os.getenv("ALLOWED_CHAT_IDS", "")
+    return {int(x.strip()) for x in raw.split(",") if x.strip()}
 
 HELP_TEXT = """Welcome to Court Slay 2000!
 
@@ -16,6 +21,9 @@ HELP_TEXT = """Welcome to Court Slay 2000!
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
+    if chat_id not in _allowed_ids():
+        return
+
     text = update.message.text.strip()
     lower = text.lower()
 

@@ -37,7 +37,7 @@ class Flavour2CourtCaseFactory:
                     # claimaint vs defendant type
                     if re.search(r' v |vs|-v-|-V-| V ', case_details):
 
-                        match = re.search(r"(.+?)\s*(?:v|vs|-v-|-V-| V )\s*(.+)", case_details)
+                        match = re.search(r"(.+?)\s+(?:vs|-v-|-V-|[Vv])\s+(.+)", case_details)
                         if match: # maybe there is a bug where the first research passes and the second one doesnt?
                             claimant = match.group(1).strip()
                             defendant = match.group(2).strip()
