@@ -18,7 +18,7 @@ class Flavour1CourtCaseFactory:
             """Converts each row into a court case object."""
             court_cases = []
 
-            for row in self.messy_texts:
+            for (row, judge_name, hearing_room) in self.messy_texts:
 
                 # TODO for chelmsford, issue with only one empty td at the start so trying to parse duration from courtcase ID.
 
@@ -73,7 +73,9 @@ class Flavour1CourtCaseFactory:
                                 False,
                                 hearing_type_span,
                                 hearing_channel_span,
-                                self.city
+                                self.city,
+                                judge_name=judge_name,
+                                hearing_room=hearing_room
                             )
                             court_cases.append(court_case)
                     elif re.search(r"a minor", details_span_less_case_id.lower()):
@@ -89,7 +91,9 @@ class Flavour1CourtCaseFactory:
                         True,
                         hearing_type_span,
                         hearing_channel_span,
-                        self.city
+                        self.city,
+                        judge_name=judge_name,
+                        hearing_room=hearing_room
                         )
                         court_cases.append(court_case)
 
@@ -105,7 +109,9 @@ class Flavour1CourtCaseFactory:
                             False,
                             hearing_type_span,
                             hearing_channel_span,
-                            self.city
+                            self.city,
+                            judge_name=judge_name,
+                            hearing_room=hearing_room
                         )
                             court_cases.append(court_case)
 

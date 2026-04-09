@@ -18,7 +18,7 @@ class Flavour2CourtCaseFactory:
             """Converts each row into a court case object."""
             court_cases = []
 
-            for row in self.messy_texts:
+            for (row, judge_name, hearing_room) in self.messy_texts:
                 try:
                     if len(row) == 6: # Flavour 2, all rows have six maybe?
                         start_time, duration, case_id, case_details, hearing_type, hearing_channel = row
@@ -53,7 +53,9 @@ class Flavour2CourtCaseFactory:
                                 False,
                                 hearing_type,
                                 hearing_channel,
-                                self.city
+                                self.city,
+                                judge_name=judge_name,
+                                hearing_room=hearing_room
                             )
                             court_cases.append(court_case)
 
@@ -72,7 +74,9 @@ class Flavour2CourtCaseFactory:
                         True,
                         hearing_type,
                         hearing_channel,
-                        self.city
+                        self.city,
+                        judge_name=judge_name,
+                        hearing_room=hearing_room
                         )
                         court_cases.append(court_case)
                     # Other
@@ -88,7 +92,9 @@ class Flavour2CourtCaseFactory:
                             False,
                             hearing_type,
                             hearing_channel,
-                            self.city
+                            self.city,
+                            judge_name=judge_name,
+                            hearing_room=hearing_room
                         )
                             court_cases.append(court_case)
 

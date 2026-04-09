@@ -35,6 +35,8 @@ class CourtCase(Base):
     case_details = Column(Text)
     created_at = Column(BigInteger)
     is_minor = Column(Boolean)
+    judge_name = Column(String)
+    hearing_room = Column(String)
 
 
 subscription_id_seq = Sequence("subscription_seq")

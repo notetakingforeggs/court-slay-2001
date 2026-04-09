@@ -55,9 +55,11 @@ def insert_court_case(court_case:CourtCase, court_id):
                         is_minor,
                         hearing_type,
                         hearing_channel,
-                        court_id
+                        court_id,
+                        judge_name,
+                        hearing_room
                         )
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                         ON CONFLICT DO NOTHING
                         RETURNING id
                     ''',
@@ -72,7 +74,9 @@ def insert_court_case(court_case:CourtCase, court_id):
                         court_case.is_minor,
                         court_case.hearing_type,
                         court_case.hearing_channel,
-                        court_id
+                        court_id,
+                        court_case.judge_name,
+                        court_case.hearing_room
                     )
                 )
                 return cur.fetchone() is not None  # True if inserted, False if skipped

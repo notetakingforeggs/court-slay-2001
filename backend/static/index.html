@@ -181,6 +181,10 @@
                 <label>Hearing type</label>
                 <input type="text" id="q-type" placeholder="e.g. Possession, Warrant...">
             </div>
+            <div class="search-field">
+                <label>Case ref</label>
+                <input type="text" id="q-ref" placeholder="e.g. B12YP123...">
+            </div>
             <div class="search-field full">
                 <label>Keyword in case details</label>
                 <input type="text" id="q-keyword" placeholder="Search within case details...">
@@ -238,7 +242,7 @@
     });
 
     document.getElementById("clear-btn").addEventListener("click", function() {
-        ["q-name", "q-keyword", "q-type", "q-from", "q-to"].forEach(id => document.getElementById(id).value = "");
+        ["q-name", "q-ref", "q-keyword", "q-type", "q-from", "q-to"].forEach(id => document.getElementById(id).value = "");
         document.getElementById("q-court").value = "";
         document.getElementById("status").textContent = "";
         document.getElementById("results").innerHTML = "";
@@ -249,7 +253,7 @@
         pastMode = false;
     });
 
-    ["q-name", "q-keyword", "q-type"].forEach(id => {
+    ["q-name", "q-ref", "q-keyword", "q-type"].forEach(id => {
         document.getElementById(id).addEventListener("keydown", function(e) {
             if (e.key === "Enter") {
                 allResults = [];
@@ -269,6 +273,7 @@
 
     function buildParams(offset, isPast) {
         const name = document.getElementById("q-name").value.trim();
+        const ref = document.getElementById("q-ref").value.trim();
         const keyword = document.getElementById("q-keyword").value.trim();
         const type = document.getElementById("q-type").value.trim();
         const court = document.getElementById("q-court").value;
@@ -282,6 +287,7 @@
         function makeUrl(extra) {
             const p = new URLSearchParams();
             if (court) p.set("court_id", court);
+            if (ref) p.set("case_ref", ref);
             if (keyword) p.set("keyword", keyword);
             if (type) p.set("hearing_type", type);
 
@@ -348,7 +354,16 @@
             if (allResults.length === 0) {
                 status.textContent = "No results found.";
                 resultsDiv.innerHTML = '<div class="no-results">No hearings matched your search.</div>';
-                loadMoreDiv.innerHTML = "";
+                if (!pastMode) {
+                    loadMoreDiv.innerHTML = '<div class="load-more-row"><button id="load-more-btn">Load past hearings</button></div>';
+                    document.getElementById("load-more-btn").addEventListener("click", function() {
+                        pastMode = true;
+                        pastOffset = 0;
+                        runSearch(true);
+                    });
+                } else {
+                    loadMoreDiv.innerHTML = "";
+                }
                 return;
             }
 
@@ -361,6 +376,8 @@
                 "<th>Defendant</th>" +
                 "<th>Type</th>" +
                 "<th>Details</th>" +
+                "<th>Judge</th>" +
+                "<th>Room</th>" +
                 "</tr></thead><tbody>";
 
             for (const c of allResults) {
@@ -371,6 +388,8 @@
                     "<td>" + (c.defendant || "-") + "</td>" +
                     "<td>" + (c.hearing_type ? '<span class="tag">' + c.hearing_type + "</span>" : "-") + "</td>" +
                     "<td>" + (c.case_details || "-") + "</td>" +
+                    "<td>" + (c.judge_name || "-") + "</td>" +
+                    "<td>" + (c.hearing_room || "-") + "</td>" +
                     "</tr>";
             }
 
