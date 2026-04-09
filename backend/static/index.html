@@ -353,7 +353,7 @@
 
             if (allResults.length === 0) {
                 status.textContent = "No results found.";
-                resultsDiv.innerHTML = '<div class="no-results">No hearings matched your search.</div>';
+                resultsDiv.innerHTML = '<div class="no-results">No upcoming hearings found.</div>';
                 if (!pastMode) {
                     loadMoreDiv.innerHTML = '<div class="load-more-row"><button id="load-more-btn">Load past hearings</button></div>';
                     document.getElementById("load-more-btn").addEventListener("click", function() {
